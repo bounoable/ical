@@ -2,6 +2,7 @@
 package ics
 
 import (
+	"context"
 	"io"
 	"os"
 
@@ -56,6 +57,14 @@ func LexWith(opts ...lex.Option) Option {
 func ParseWith(opts ...parse.Option) Option {
 	return func(cfg *config) {
 		cfg.parserOptions = append(cfg.parserOptions, opts...)
+	}
+}
+
+// Context adds a context to the lexer & parser.
+func Context(ctx context.Context) Option {
+	return func(cfg *config) {
+		LexWith(lex.Context(ctx))(cfg)
+		ParseWith(parse.Context(ctx))(cfg)
 	}
 }
 
