@@ -3,6 +3,7 @@ package lex
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,11 +33,24 @@ func Reader(r io.Reader, opts ...Option) (<-chan Item, error) {
 		opt(&l)
 	}
 
+	if l.ctx == nil {
+		l.ctx = context.Background()
+	}
+
 	go func() {
+		defer close(l.items)
 		for state := lexContentLine; state != nil; {
-			state = state(&l)
+			select {
+			case <-l.ctx.Done():
+				l.items <- Item{
+					Type:  Error,
+					Value: l.ctx.Err().Error(),
+				}
+				return
+			default:
+				state = state(&l)
+			}
 		}
-		close(l.items)
 	}()
 
 	return l.items, nil
@@ -65,6 +79,13 @@ func Bytes(b []byte, opts ...Option) (<-chan Item, error) {
 // Option is a lexer option.
 type Option func(*lexer)
 
+// Context adds a context to the lexer.
+func Context(ctx context.Context) Option {
+	return func(l *lexer) {
+		l.ctx = ctx
+	}
+}
+
 // StrictLineBreaks enforces "CRLF" line breaks in the iCalendar source file.
 // By default the lexer also allows "LF" line breaks.
 func StrictLineBreaks(l *lexer) {
@@ -72,6 +93,7 @@ func StrictLineBreaks(l *lexer) {
 }
 
 type lexer struct {
+	ctx              context.Context
 	strictLineBreaks bool
 	input            string
 	start            int

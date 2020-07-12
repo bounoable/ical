@@ -1,6 +1,8 @@
 package lex_test
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -223,6 +225,31 @@ func TestReader(t *testing.T) {
 			assert.Equal(t, test.expected, items)
 		})
 	}
+}
+
+func TestLex_context(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch, err := lex.File(
+		filepath.Join(wd, "testdata/calendar_crlf.ics"),
+		lex.Context(ctx),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel()
+
+	var items []lex.Item
+	for item := range ch {
+		fmt.Println(item)
+		items = append(items, item)
+	}
+
+	assert.Equal(t, lex.Item{
+		Type:  lex.Error,
+		Value: ctx.Err().Error(),
+	}, items[len(items)-1])
 }
 
 func item(typ lex.ItemType, val string) lex.Item {
