@@ -11,7 +11,7 @@ import (
 	"github.com/bounoable/ical/parse"
 )
 
-// Calendar is an alias for parse.Calendar.
+// Calendar is a parsed iCalendar.
 type Calendar parse.Calendar
 
 // Parse parses the iCalendar from r.
