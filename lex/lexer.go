@@ -2,7 +2,6 @@
 package lex
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -69,11 +68,6 @@ func File(filepath string, opts ...Option) (<-chan Item, error) {
 // Text lexes the iCalendar from the given text.
 func Text(text string, opts ...Option) (<-chan Item, error) {
 	return Reader(strings.NewReader(text))
-}
-
-// Bytes lexes the iCalendar from the string in b.
-func Bytes(b []byte, opts ...Option) (<-chan Item, error) {
-	return Reader(bytes.NewReader(b))
 }
 
 // Option is a lexer option.
