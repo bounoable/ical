@@ -1,6 +1,7 @@
 package parse_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -317,6 +318,14 @@ func parseLocationTest(loc *time.Location, layout string, expected time.Time) fu
 
 		assert.Equal(t, expected, cal.Events[0].Timestamp)
 	}
+}
+
+func TestParse_context(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := parse.Items(lexItems(), parse.Context(ctx))
+	assert.Equal(t, &parse.Error{Err: ctx.Err()}, err)
 }
 
 func item(typ lex.ItemType, val string) lex.Item {

@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -70,6 +71,9 @@ func Items(items <-chan lex.Item, opts ...Option) (Calendar, error) {
 	for _, opt := range opts {
 		opt(&p)
 	}
+	if p.ctx == nil {
+		p.ctx = context.Background()
+	}
 	return p.parse()
 }
 
@@ -88,6 +92,13 @@ func Slice(items []lex.Item, opts ...Option) (Calendar, error) {
 // Option is a parser option.
 type Option func(*parser)
 
+// Context adds a context to the parser.
+func Context(ctx context.Context) Option {
+	return func(p *parser) {
+		p.ctx = ctx
+	}
+}
+
 // Location configures loc to be used as the *time.Location used for parsing
 // date / datetime values that don't explicitly have "UTC" set as the timezone
 // by the "Z" suffix.
@@ -98,9 +109,10 @@ func Location(loc *time.Location) Option {
 }
 
 type parser struct {
-	items <-chan lex.Item
-	loc   *time.Location
+	ctx context.Context
+	loc *time.Location
 
+	items     <-chan lex.Item
 	buf       [2]lex.Item
 	start     int
 	pos       int
@@ -118,6 +130,12 @@ func (p *parser) nextItem() (lex.Item, error) {
 }
 
 func (p *parser) next() (lex.Item, error) {
+	select {
+	case <-p.ctx.Done():
+		return lex.Item{}, p.ctx.Err()
+	default:
+	}
+
 	if p.peekCount > 0 {
 		p.peekCount--
 	} else {
