@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/bounoable/ical/lex"
 	"github.com/bounoable/ical/parse"
@@ -41,6 +42,11 @@ func ParseFile(filepath string, opts ...Option) (Calendar, error) {
 	}
 	defer f.Close()
 	return Parse(f, opts...)
+}
+
+// ParseText parses the iCalendar from text.
+func ParseText(text string, opts ...Option) (Calendar, error) {
+	return Parse(strings.NewReader(text), opts...)
 }
 
 // Option is a lex/parse option.
