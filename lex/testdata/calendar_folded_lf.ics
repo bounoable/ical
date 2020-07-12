@@ -1,0 +1,8 @@
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DESCRIPTION:A description that is too long to fit into 75 octets should
+  wrap to the next line. Lorem ipsum dolor sit amet, consectetur adipiscing
+  elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+  Ut enim ad minim veniam, quis nostrud exercitation.
+END:VEVENT
+END:VCALENDAR
