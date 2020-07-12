@@ -13,7 +13,7 @@ var (
 	errEndOfItems = errors.New("end of items")
 )
 
-// Calendar ...
+// Calendar is a parsed iCalendar.
 type Calendar struct {
 	Properties []Property
 	ProductID  string
@@ -24,7 +24,7 @@ type Calendar struct {
 	Alarms     []Alarm
 }
 
-// Event ...
+// Event is a parsed iCalendar event.
 type Event struct {
 	Properties  []Property
 	UID         string
@@ -36,25 +36,27 @@ type Event struct {
 	Description string
 }
 
-// Alarm ...
+// Alarm is a parsed iCalendar alarm.
 type Alarm struct {
 	Properties []Property
 	Action     string
 	Trigger    string
 }
 
-// Property ...
+// Property is an iCalendar property / content-line.
 type Property struct {
 	Name   string
 	Params Parameters
 	Value  string
 }
 
-// Parameters ...
+// Parameters are the parameters of a Property.
 type Parameters map[string][]string
 
-// Items ...
+// Items parses a channel of lex.Item, returns the parsed iCalendar and/or a *ParseError if it fails.
 func Items(items <-chan lex.Item, opts ...Option) (Calendar, error) {
+	// TODO: wrap errors in *ParseError
+
 	p := parser{items: items}
 	for _, opt := range opts {
 		opt(&p)
@@ -62,7 +64,7 @@ func Items(items <-chan lex.Item, opts ...Option) (Calendar, error) {
 	return p.parse()
 }
 
-// Slice ...
+// Slice parses a slice of lex.Item.
 func Slice(items []lex.Item, opts ...Option) (Calendar, error) {
 	ch := make(chan lex.Item)
 	go func() {
@@ -74,10 +76,12 @@ func Slice(items []lex.Item, opts ...Option) (Calendar, error) {
 	return Items(ch, opts...)
 }
 
-// Option ...
+// Option is a parser option.
 type Option func(*parser)
 
-// Location ...
+// Location configures loc to be used as the *time.Location used for parsing
+// date / datetime values that don't explicitly have "UTC" set as the timezone
+// by the "Z" suffix.
 func Location(loc *time.Location) Option {
 	return func(p *parser) {
 		p.loc = loc
@@ -424,17 +428,15 @@ func (p *parser) parseTime(prop Property) (time.Time, error) {
 	} else {
 		layout = parseLayout(prop.Params)
 
-		if tzRaw, ok := prop.Params["TZID"]; ok {
+		if p.loc != nil {
+			loc = p.loc
+		} else if tzRaw, ok := prop.Params["TZID"]; ok {
 			for _, raw := range tzRaw {
 				if tzloc, err := time.LoadLocation(raw); err == nil {
 					loc = tzloc
 					break
 				}
 			}
-		}
-
-		if p.loc != nil {
-			loc = p.loc
 		}
 	}
 

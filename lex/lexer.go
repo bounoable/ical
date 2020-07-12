@@ -1,3 +1,4 @@
+// Package lex tokenizes iCalendar files for the parser.
 package lex
 
 import (
@@ -11,11 +12,11 @@ import (
 	"unicode/utf8"
 )
 
-const (
-	eof = rune(-1)
-)
+const eof = rune(-1)
 
-// Reader ...
+// Reader lexes the iCalendar from r and sends the tokens to the returned channel.
+// Reader returns an error only if it fails to read from r.
+// Lex errors are sent to the Item channel as an Error item.
 func Reader(r io.Reader, opts ...Option) (<-chan Item, error) {
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -41,7 +42,7 @@ func Reader(r io.Reader, opts ...Option) (<-chan Item, error) {
 	return l.items, nil
 }
 
-// File ...
+// File lexes the iCalendar from the file at filepath.
 func File(filepath string, opts ...Option) (<-chan Item, error) {
 	f, err := os.Open(filepath)
 	if err != nil {
@@ -51,30 +52,23 @@ func File(filepath string, opts ...Option) (<-chan Item, error) {
 	return Reader(f, opts...)
 }
 
-// Text ...
+// Text lexes the iCalendar from the given text.
 func Text(text string, opts ...Option) (<-chan Item, error) {
 	return Reader(strings.NewReader(text))
 }
 
-// Bytes ...
+// Bytes lexes the iCalendar from the string in b.
 func Bytes(b []byte, opts ...Option) (<-chan Item, error) {
 	return Reader(bytes.NewReader(b))
 }
 
-// Option ...
+// Option is a lexer option.
 type Option func(*lexer)
 
-// StrictLineBreaks ...
+// StrictLineBreaks enforces "CRLF" line breaks in the iCalendar source file.
+// By default the lexer also allows "LF" line breaks.
 func StrictLineBreaks(l *lexer) {
 	l.strictLineBreaks = true
-}
-
-// Must ...
-func Must(items <-chan Item, err error) <-chan Item {
-	if err != nil {
-		panic(fmt.Errorf("lexer: %w", err))
-	}
-	return items
 }
 
 type lexer struct {

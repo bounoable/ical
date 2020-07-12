@@ -1,16 +1,18 @@
+// Package ics parses iCalendar (.ics) files.
 package ics
 
 import (
 	"io"
+	"os"
 
 	"github.com/bounoable/ical/lex"
 	"github.com/bounoable/ical/parse"
 )
 
-// Calendar ...
+// Calendar is an alias for parse.Calendar.
 type Calendar parse.Calendar
 
-// Parse ...
+// Parse parses the iCalendar from r.
 func Parse(r io.Reader, opts ...Option) (Calendar, error) {
 	var cfg config
 	for _, opt := range opts {
@@ -30,17 +32,27 @@ func Parse(r io.Reader, opts ...Option) (Calendar, error) {
 	return Calendar(cal), nil
 }
 
-// Option ...
+// ParseFile parses the iCalendar from the file at filepath.
+func ParseFile(filepath string, opts ...Option) (Calendar, error) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return Calendar{}, err
+	}
+	defer f.Close()
+	return Parse(f, opts...)
+}
+
+// Option is a lex/parse option.
 type Option func(*config)
 
-// LexWith ...
+// LexWith adds options to the lexer.
 func LexWith(opts ...lex.Option) Option {
 	return func(cfg *config) {
 		cfg.lexerOptions = append(cfg.lexerOptions, opts...)
 	}
 }
 
-// ParseWith ...
+// ParseWith adds options to the parser.
 func ParseWith(opts ...parse.Option) Option {
 	return func(cfg *config) {
 		cfg.parserOptions = append(cfg.parserOptions, opts...)
