@@ -9,9 +9,7 @@ import (
 	"github.com/bounoable/ical/lex"
 )
 
-var (
-	errEndOfItems = errors.New("end of items")
-)
+var errEndOfItems = errors.New("end of items")
 
 // Calendar is a parsed iCalendar.
 type Calendar struct {
@@ -53,10 +51,21 @@ type Property struct {
 // Parameters are the parameters of a Property.
 type Parameters map[string][]string
 
-// Items parses a channel of lex.Item, returns the parsed iCalendar and/or a *ParseError if it fails.
-func Items(items <-chan lex.Item, opts ...Option) (Calendar, error) {
-	// TODO: wrap errors in *ParseError
+// Error contains information about a parser error
+type Error struct {
+	Err error
+}
 
+func (err *Error) Error() string {
+	return fmt.Sprintf("parse: %v", err.Err)
+}
+
+func (err *Error) Unwrap() error {
+	return err.Err
+}
+
+// Items parses a channel of lex.Item, returns the parsed iCalendar and/or an *Error if it fails.
+func Items(items <-chan lex.Item, opts ...Option) (Calendar, error) {
 	p := parser{items: items}
 	for _, opt := range opts {
 		opt(&p)
@@ -158,8 +167,10 @@ func (p *parser) unexpectedType(item lex.Item, expected lex.ItemType) error {
 }
 
 func (p *parser) parse() (Calendar, error) {
-	err := p.parseCalendar()
-	return p.cal, err
+	if err := p.parseCalendar(); err != nil {
+		return p.cal, &Error{Err: err}
+	}
+	return p.cal, nil
 }
 
 func (p *parser) parseCalendar() error {
