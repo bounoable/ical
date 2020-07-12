@@ -99,7 +99,7 @@ func Context(ctx context.Context) Option {
 	}
 }
 
-// Location configures loc to be used as the *time.Location used for parsing
+// Location configures loc to be used as the *time.Location for parsing
 // date / datetime values that don't explicitly have "UTC" set as the timezone
 // by the "Z" suffix.
 func Location(loc *time.Location) Option {
