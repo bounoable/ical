@@ -12,6 +12,8 @@ const (
 	endVCalendar   = "END:VCALENDAR"
 	beginVEvent    = "BEGIN:VEVENT"
 	endVEvent      = "END:VEVENT"
+	beginVAlarm    = "BEGIN:VALARM"
+	endVAlarm      = "END:VALARM"
 )
 
 // contentline   = name *(";" param ) ":" value CRLF
@@ -37,6 +39,18 @@ func lexContentLine(l *lexer) stateFunc {
 	if l.hasPrefix(endVEvent) {
 		l.pos += len(endVEvent)
 		l.emit(EventEnd)
+		return lexNewLine
+	}
+
+	if l.hasPrefix(beginVAlarm) {
+		l.pos += len(beginVAlarm)
+		l.emit(AlarmBegin)
+		return lexNewLine
+	}
+
+	if l.hasPrefix(endVAlarm) {
+		l.pos += len(endVAlarm)
+		l.emit(AlarmEnd)
 		return lexNewLine
 	}
 

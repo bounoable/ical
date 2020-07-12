@@ -7,8 +7,11 @@ import (
 	"github.com/bounoable/ical/parse"
 )
 
+// Calendar ...
+type Calendar parse.Calendar
+
 // Parse ...
-func Parse(r io.Reader, opts ...Option) (parse.Calendar, error) {
+func Parse(r io.Reader, opts ...Option) (Calendar, error) {
 	var cfg config
 	for _, opt := range opts {
 		opt(&cfg)
@@ -16,10 +19,15 @@ func Parse(r io.Reader, opts ...Option) (parse.Calendar, error) {
 
 	items, err := lex.Reader(r, cfg.lexerOptions...)
 	if err != nil {
-		return parse.Calendar{}, err
+		return Calendar{}, err
 	}
 
-	return parse.Items(items, cfg.parserOptions...)
+	cal, err := parse.Items(items, cfg.parserOptions...)
+	if err != nil {
+		return Calendar{}, err
+	}
+
+	return Calendar(cal), nil
 }
 
 // Option ...

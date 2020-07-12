@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -48,6 +49,16 @@ func File(filepath string, opts ...Option) (<-chan Item, error) {
 	}
 	defer f.Close()
 	return Reader(f, opts...)
+}
+
+// Text ...
+func Text(text string, opts ...Option) (<-chan Item, error) {
+	return Reader(strings.NewReader(text))
+}
+
+// Bytes ...
+func Bytes(b []byte, opts ...Option) (<-chan Item, error) {
+	return Reader(bytes.NewReader(b))
 }
 
 // Option ...

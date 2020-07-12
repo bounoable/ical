@@ -11,6 +11,8 @@ const (
 	CalendarEnd
 	EventBegin
 	EventEnd
+	AlarmBegin
+	AlarmEnd
 
 	Name
 	Value

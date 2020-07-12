@@ -21,6 +21,7 @@ type Calendar struct {
 	Calscale   string
 	Method     string
 	Events     []Event
+	Alarms     []Alarm
 }
 
 // Event ...
@@ -37,8 +38,9 @@ type Event struct {
 
 // Alarm ...
 type Alarm struct {
-	Action  string
-	Trigger string
+	Properties []Property
+	Action     string
+	Trigger    string
 }
 
 // Property ...
@@ -170,27 +172,31 @@ func (p *parser) parseCalendar() error {
 		Calscale: "GREGORIAN",
 	}
 
+loop:
 	for {
 		item, err = p.next()
 		if err != nil {
 			return err
 		}
 
-		if item.Type == lex.CalendarEnd {
-			p.backup()
-			break
-		}
-
-		if item.Type == lex.EventBegin {
+		switch item.Type {
+		case lex.CalendarEnd:
+			break loop
+		case lex.EventBegin:
 			p.backup()
 			evt, err := p.parseEvent()
 			if err != nil {
 				return err
 			}
 			cal.Events = append(cal.Events, evt)
-		}
-
-		if item.Type == lex.Name {
+		case lex.AlarmBegin:
+			p.backup()
+			alarm, err := p.parseAlarm()
+			if err != nil {
+				return err
+			}
+			cal.Alarms = append(cal.Alarms, alarm)
+		case lex.Name:
 			p.backup()
 			prop, err := p.parseProperty()
 			if err != nil {
@@ -276,10 +282,59 @@ func (p *parser) parseEvent() (Event, error) {
 				return evt, err
 			}
 			evt.Timestamp = t
+		case "SUMMARY":
+			evt.Summary = prop.Value
 		}
 	}
 
 	return evt, nil
+}
+
+func (p *parser) parseAlarm() (Alarm, error) {
+	var alarm Alarm
+
+	item, err := p.nextType(lex.AlarmBegin)
+	if err != nil {
+		return alarm, err
+	}
+
+	for {
+		item, err = p.next()
+		if err != nil {
+			return alarm, err
+		}
+
+		if item.Type == lex.AlarmEnd {
+			p.backup()
+			break
+		}
+
+		if item.Type != lex.Name {
+			return alarm, p.unexpectedType(item, lex.Name)
+		}
+
+		p.backup()
+		prop, err := p.parseProperty()
+		if err != nil {
+			return alarm, err
+		}
+		alarm.Properties = append(alarm.Properties, prop)
+	}
+
+	if item, err = p.nextType(lex.AlarmEnd); err != nil {
+		return alarm, err
+	}
+
+	for _, prop := range alarm.Properties {
+		switch prop.Name {
+		case "TRIGGER":
+			alarm.Trigger = prop.Value
+		case "ACTION":
+			alarm.Action = prop.Value
+		}
+	}
+
+	return alarm, nil
 }
 
 func (p *parser) parseProperty() (Property, error) {

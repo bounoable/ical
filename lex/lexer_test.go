@@ -187,10 +187,24 @@ func TestReader(t *testing.T) {
 				item(lex.EOF, ""),
 			},
 		},
+		"with alarm": {
+			filepath: filepath.Join(wd, "testdata/with_alarm.ics"),
+			expected: []lex.Item{
+				beginCalendar(),
+				beginAlarm(),
+				item(lex.Name, "TRIGGER"),
+				item(lex.Value, "foo"),
+				item(lex.Name, "ACTION"),
+				item(lex.Value, "bar"),
+				endAlarm(),
+				endCalendar(),
+				item(lex.EOF, ""),
+			},
+		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.filepath, func(t *testing.T) {
+		t.Run(filepath.Base(test.filepath), func(t *testing.T) {
 			f, err := os.Open(test.filepath)
 			if err != nil {
 				t.Fatal(err)
@@ -232,4 +246,12 @@ func beginEvent() lex.Item {
 
 func endEvent() lex.Item {
 	return item(lex.EventEnd, "END:VEVENT")
+}
+
+func beginAlarm() lex.Item {
+	return item(lex.AlarmBegin, "BEGIN:VALARM")
+}
+
+func endAlarm() lex.Item {
+	return item(lex.AlarmEnd, "END:VALARM")
 }
