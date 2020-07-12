@@ -1,5 +1,5 @@
-// Package ics parses iCalendar (.ics) files.
-package ics
+// Package ical parses iCalendar (.ics) files.
+package ical
 
 import (
 	"context"
