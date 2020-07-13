@@ -52,7 +52,7 @@ type Property struct {
 // Parameters are the parameters of a Property.
 type Parameters map[string][]string
 
-// Error contains information about a parser error
+// Error is a parser error.
 type Error struct {
 	Err error
 }
@@ -406,7 +406,6 @@ func (p *parser) parseProperty() (Property, error) {
 }
 
 func (p *parser) parseParams(params Parameters) error {
-
 	for {
 		item, err := p.next()
 		if err != nil {
