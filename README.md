@@ -66,7 +66,9 @@ You can attach a `context.Context` to both the lexer & parser via an option:
 package main
 
 import (
+  "context"
   "os"
+  "time"
   "github.com/bounoable/ical"
 )
 
