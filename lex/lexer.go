@@ -2,13 +2,14 @@
 package lex
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"regexp"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -18,13 +19,8 @@ const eof = rune(-1)
 // Reader returns an error only if it fails to read from r.
 // Lex errors are sent to the Item channel as an Error item.
 func Reader(r io.Reader, opts ...Option) (<-chan Item, error) {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
 	l := lexer{
-		input: unfold(string(b)),
+		input: bufio.NewReader(r),
 		items: make(chan Item),
 	}
 
@@ -89,10 +85,11 @@ func StrictLineBreaks(l *lexer) {
 type lexer struct {
 	ctx              context.Context
 	strictLineBreaks bool
-	input            string
-	start            int
-	pos              int
+	input            io.RuneReader
+	bufferedInput    string
+	bufPos           int
 	width            int
+	consumed         int
 	items            chan Item
 }
 
@@ -101,9 +98,9 @@ type stateFunc func(*lexer) stateFunc
 func (l *lexer) emit(t ItemType) {
 	l.items <- Item{
 		Type:  t,
-		Value: l.input[l.start:l.pos],
+		Value: l.bufferedInput[:l.bufPos],
 	}
-	l.start = l.pos
+	l.ignore()
 }
 
 func (l *lexer) emitIf(cond bool, t ItemType) {
@@ -113,7 +110,7 @@ func (l *lexer) emitIf(cond bool, t ItemType) {
 }
 
 func (l *lexer) emitAdvanced(t ItemType) {
-	l.emitIf(l.pos > l.start, t)
+	l.emitIf(l.bufPos > 0, t)
 }
 
 func (l *lexer) emitEOF() {
@@ -121,24 +118,91 @@ func (l *lexer) emitEOF() {
 	l.emit(EOF)
 }
 
+func (l *lexer) advance(n int) {
+	l.bufPos += n
+}
+
 func (l *lexer) next() (r rune) {
-	if l.pos >= len(l.input) {
+	for l.bufPos >= len(l.bufferedInput) {
+		err := l.readRune()
+		if err == nil {
+			continue
+		}
+
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		l.items <- Item{
+			Type:  Error,
+			Value: err.Error(),
+		}
+		break
+	}
+
+	if l.bufPos >= len(l.bufferedInput) {
 		l.width = 0
 		return eof
 	}
 
-	r, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
-	l.pos += l.width
+	r, l.width = utf8.DecodeRuneInString(l.bufferedInput[l.bufPos:])
+	l.bufPos += l.width
 
 	return
 }
 
+func (l *lexer) readRune() error {
+	r, _, err := l.input.ReadRune()
+	if err != nil {
+		return err
+	}
+
+	// if first rune is not one of [CR, LF], add it to the input and return
+	if r != cr && r != lf {
+		l.bufferedInput += string(r)
+		return nil
+	}
+
+	r2, _, err := l.input.ReadRune()
+	if err != nil {
+		return err
+	}
+
+	// if the first rune is LF and the second is a space, unfold by skipping these two runes
+	if r == lf && unicode.IsSpace(r2) {
+		return nil
+	}
+
+	// if r + r2 != CRLF, add both runes to the input
+	if !(r == cr && r2 == lf) {
+		l.bufferedInput += string(r) + string(r2)
+		return nil
+	}
+
+	r3, _, err := l.input.ReadRune()
+	if err != nil {
+		return err
+	}
+
+	// r = CR, r2 = LF
+	// if r3 is not a space, add a CRLF line break and r3 to the input
+	if !unicode.IsSpace(r3) {
+		l.bufferedInput += string(r) + string(r2) + string(r3)
+		return nil
+	}
+
+	// r + r2 = CRLF, r3 = SPACE -> drop all three runes
+	return nil
+}
+
 func (l *lexer) ignore() {
-	l.start = l.pos
+	l.bufferedInput = l.bufferedInput[l.bufPos:]
+	l.consumed += l.bufPos
+	l.bufPos = 0
 }
 
 func (l *lexer) backup() {
-	l.pos -= l.width
+	l.bufPos -= l.width
 }
 
 func (l *lexer) peek() rune {
@@ -148,7 +212,24 @@ func (l *lexer) peek() rune {
 }
 
 func (l *lexer) hasPrefix(prefix string) bool {
-	return strings.HasPrefix(l.input[l.pos:], prefix)
+	for len(prefix) > len(l.bufferedInput[l.bufPos:]) {
+		err := l.readRune()
+		if err == nil {
+			continue
+		}
+
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		l.items <- Item{
+			Type:  Error,
+			Value: err.Error(),
+		}
+		return false
+	}
+
+	return strings.HasPrefix(l.bufferedInput[l.bufPos:], prefix)
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFunc {
@@ -164,17 +245,13 @@ func (l *lexer) unexpected(r rune, valid ...rune) stateFunc {
 	for i, r := range valid {
 		svalid[i] = string(r)
 	}
-	return l.errorf("expected character at pos %d to be one of %v, but got %s", l.pos, svalid, string(r))
+	return l.errorf("expected character at pos %d to be one of %s; got %s", l.pos(), svalid, string(r))
 }
 
 func (l *lexer) unexpectedEOF() stateFunc {
-	return l.errorf("unexpected end of file at pos %d", l.pos)
+	return l.errorf("unexpected EOF at pos %d", l.pos())
 }
 
-var crlfUnfoldRE = regexp.MustCompile(`\r\n\s`)
-var lfUnfoldRE = regexp.MustCompile(`\n\s`)
-
-func unfold(text string) string {
-	unfolded := crlfUnfoldRE.ReplaceAllString(text, "")
-	return lfUnfoldRE.ReplaceAllString(unfolded, "")
+func (l *lexer) pos() int {
+	return l.consumed + l.bufPos + 1
 }

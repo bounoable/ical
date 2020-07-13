@@ -2,7 +2,6 @@ package lex_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -124,7 +123,7 @@ func TestReader(t *testing.T) {
 			},
 			expected: []lex.Item{
 				beginCalendar(),
-				item(lex.Error, "missing carriage return (CR) at pos 16"),
+				item(lex.Error, "missing carriage return (CR) at pos 17"),
 			},
 		},
 		"folded (CRLF)": {
@@ -242,7 +241,6 @@ func TestLex_context(t *testing.T) {
 
 	var items []lex.Item
 	for item := range ch {
-		fmt.Println(item)
 		items = append(items, item)
 	}
 

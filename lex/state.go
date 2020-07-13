@@ -19,37 +19,37 @@ const (
 // contentline   = name *(";" param ) ":" value CRLF
 func lexContentLine(l *lexer) stateFunc {
 	if l.hasPrefix(beginVCalender) {
-		l.pos += len(beginVCalender)
+		l.advance(len(beginVCalender))
 		l.emit(CalendarBegin)
 		return lexNewLine
 	}
 
 	if l.hasPrefix(endVCalendar) {
-		l.pos += len(endVCalendar)
+		l.advance(len(endVCalendar))
 		l.emit(CalendarEnd)
 		return lexNewLine
 	}
 
 	if l.hasPrefix(beginVEvent) {
-		l.pos += len(beginVEvent)
+		l.advance(len(beginVEvent))
 		l.emit(EventBegin)
 		return lexNewLine
 	}
 
 	if l.hasPrefix(endVEvent) {
-		l.pos += len(endVEvent)
+		l.advance(len(endVEvent))
 		l.emit(EventEnd)
 		return lexNewLine
 	}
 
 	if l.hasPrefix(beginVAlarm) {
-		l.pos += len(beginVAlarm)
+		l.advance(len(beginVAlarm))
 		l.emit(AlarmBegin)
 		return lexNewLine
 	}
 
 	if l.hasPrefix(endVAlarm) {
-		l.pos += len(endVAlarm)
+		l.advance(len(endVAlarm))
 		l.emit(AlarmEnd)
 		return lexNewLine
 	}
@@ -67,11 +67,11 @@ func lexNewLine(l *lexer) stateFunc {
 	if r == cr {
 		r = l.next()
 	} else if r == lf && l.strictLineBreaks {
-		return l.errorf("missing carriage return (CR) at pos %d", l.pos)
+		return l.errorf("missing carriage return (CR) at pos %d", l.pos())
 	}
 
 	if r != lf {
-		return l.errorf("expected end of line at pos %d; got %s", l.pos, string(r))
+		return l.errorf("expected end of line at pos %d; got %s", l.pos(), string(r))
 	}
 
 	if l.next() == eof {
