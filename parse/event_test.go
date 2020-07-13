@@ -84,12 +84,7 @@ END:VCALENDAR`,
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			items, err := lex.Text(test.input)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			cal, err := parse.Items(items)
+			cal, err := parse.Items(lex.Text(test.input))
 			if err != nil {
 				t.Fatal(err)
 			}

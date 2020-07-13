@@ -21,12 +21,11 @@ func Parse(r io.Reader, opts ...Option) (Calendar, error) {
 		opt(&cfg)
 	}
 
-	items, err := lex.Reader(r, cfg.lexerOptions...)
-	if err != nil {
-		return Calendar{}, err
-	}
+	cal, err := parse.Items(
+		lex.Reader(r, cfg.lexerOptions...),
+		cfg.parserOptions...,
+	)
 
-	cal, err := parse.Items(items, cfg.parserOptions...)
 	if err != nil {
 		return Calendar{}, err
 	}

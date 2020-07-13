@@ -16,9 +16,8 @@ import (
 const eof = rune(-1)
 
 // Reader lexes the iCalendar from r and sends the tokens to the returned channel.
-// Reader returns an error only if it fails to read from r.
 // Lex errors are sent to the Item channel as an Error item.
-func Reader(r io.Reader, opts ...Option) (<-chan Item, error) {
+func Reader(r io.Reader, opts ...Option) <-chan Item {
 	l := lexer{
 		input: bufio.NewReader(r),
 		items: make(chan Item),
@@ -48,7 +47,7 @@ func Reader(r io.Reader, opts ...Option) (<-chan Item, error) {
 		}
 	}()
 
-	return l.items, nil
+	return l.items
 }
 
 // File lexes the iCalendar from the file at filepath.
@@ -58,11 +57,11 @@ func File(filepath string, opts ...Option) (<-chan Item, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return Reader(f, opts...)
+	return Reader(f, opts...), nil
 }
 
 // Text lexes the iCalendar from the given text.
-func Text(text string, opts ...Option) (<-chan Item, error) {
+func Text(text string, opts ...Option) <-chan Item {
 	return Reader(strings.NewReader(text))
 }
 

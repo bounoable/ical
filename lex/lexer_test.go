@@ -212,11 +212,9 @@ func TestReader(t *testing.T) {
 			}
 			defer f.Close()
 
-			ch, err := lex.Reader(f, test.opts...)
-			assert.Nil(t, err)
+			ch := lex.Reader(f, test.opts...)
 
 			var items []lex.Item
-
 			for item := range ch {
 				items = append(items, item)
 			}

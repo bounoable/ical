@@ -16,12 +16,7 @@ TRIGGER:bar
 END:VALARM
 END:VCALENDAR`
 
-	items, err := lex.Text(input)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cal, err := parse.Items(items)
+	cal, err := parse.Items(lex.Text(input))
 	if err != nil {
 		t.Fatal(err)
 	}
