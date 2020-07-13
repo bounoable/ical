@@ -118,6 +118,42 @@ func main() {
 }
 ```
 
+## Timezones
+
+You can explicitly set the `*time.Location` that is used to parse `DATE` & `DATE-TIME` values that would otherwise be parsed in local time. This option overrides `TZID` parameters in the iCalendar.
+
+```go
+package main
+
+import (
+  "os"
+  "time"
+  "github.com/bounoable/ical"
+  "github.com/bounoable/ical/parse"
+)
+
+func main() {
+  f, err := os.Open("/path/to/calendar.ics")
+  if err != nil {
+    panic(err)
+  }
+  defer f.Close()
+
+  loc, err := time.LoadLocation("Europe/Berlin")
+  if err != nil {
+    panic(err)
+  }
+
+  cal, err := ical.Parse(f, ical.ParseWith(
+    parse.Location(loc),
+  ))
+
+  if err != nil {
+    panic(err)
+  }
+}
+```
+
 ## Lexing & parsing
 
 Both the lexer & parser are being exposed as separate packages, so you could do the following:
