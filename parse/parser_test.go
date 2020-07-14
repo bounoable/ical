@@ -2,7 +2,6 @@ package parse_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -12,107 +11,96 @@ import (
 )
 
 func TestItems(t *testing.T) {
-	tests := []struct {
-		items    []lex.Item
-		expected parse.Calendar
-	}{
-		{
-			items: []lex.Item{
-				beginCalendar(),
-				item(lex.Name, "VERSION"),
-				item(lex.Value, "2.0"),
-				item(lex.Name, "METHOD"),
-				item(lex.Value, "REQUEST"),
-				item(lex.Name, "PRODID"),
-				item(lex.Value, "-//Example//Product//ID//EN"),
-				beginEvent(),
-				item(lex.Name, "UID"),
-				item(lex.Value, "111111111111"),
-				item(lex.Name, "DTSTART"),
-				item(lex.ParamName, "VALUE"),
-				item(lex.ParamValue, "DATE"),
-				item(lex.Value, "20200101"),
-				item(lex.Name, "DTEND"),
-				item(lex.ParamName, "VALUE"),
-				item(lex.ParamValue, "DATE"),
-				item(lex.Value, "20200110"),
-				endEvent(),
-				beginEvent(),
-				item(lex.Name, "UID"),
-				item(lex.Value, "222222222222"),
-				item(lex.Name, "DTSTART"),
-				item(lex.ParamName, "VALUE"),
-				item(lex.ParamValue, "DATE"),
-				item(lex.Value, "20200201"),
-				item(lex.Name, "DTEND"),
-				item(lex.ParamName, "VALUE"),
-				item(lex.ParamValue, "DATE"),
-				item(lex.Value, "20200210"),
-				item(lex.Name, "DTSTAMP"),
-				item(lex.ParamName, "VALUE"),
-				item(lex.ParamValue, "DATE-TIME"),
-				item(lex.Value, "20200210T103000Z"),
-				endEvent(),
-				endCalendar(),
-			},
-			expected: parse.Calendar{
+	items := []lex.Item{
+		beginCalendar(),
+		item(lex.Name, "VERSION"),
+		item(lex.Value, "2.0"),
+		item(lex.Name, "METHOD"),
+		item(lex.Value, "REQUEST"),
+		item(lex.Name, "PRODID"),
+		item(lex.Value, "-//Example//Product//ID//EN"),
+		beginEvent(),
+		item(lex.Name, "UID"),
+		item(lex.Value, "111111111111"),
+		item(lex.Name, "DTSTART"),
+		item(lex.ParamName, "VALUE"),
+		item(lex.ParamValue, "DATE"),
+		item(lex.Value, "20200101"),
+		item(lex.Name, "DTEND"),
+		item(lex.ParamName, "VALUE"),
+		item(lex.ParamValue, "DATE"),
+		item(lex.Value, "20200110"),
+		endEvent(),
+		beginEvent(),
+		item(lex.Name, "UID"),
+		item(lex.Value, "222222222222"),
+		item(lex.Name, "DTSTART"),
+		item(lex.ParamName, "VALUE"),
+		item(lex.ParamValue, "DATE"),
+		item(lex.Value, "20200201"),
+		item(lex.Name, "DTEND"),
+		item(lex.ParamName, "VALUE"),
+		item(lex.ParamValue, "DATE"),
+		item(lex.Value, "20200210"),
+		item(lex.Name, "DTSTAMP"),
+		item(lex.ParamName, "VALUE"),
+		item(lex.ParamValue, "DATE-TIME"),
+		item(lex.Value, "20200210T103000Z"),
+		endEvent(),
+		endCalendar(),
+	}
+	expected := parse.Calendar{
+		Properties: []parse.Property{
+			property("VERSION", "2.0", nil),
+			property("METHOD", "REQUEST", nil),
+			property("PRODID", "-//Example//Product//ID//EN", nil),
+		},
+		Version:   "2.0",
+		Method:    "REQUEST",
+		ProductID: "-//Example//Product//ID//EN",
+		Calscale:  "GREGORIAN",
+		Events: []parse.Event{
+			{
 				Properties: []parse.Property{
-					property("VERSION", "2.0", nil),
-					property("METHOD", "REQUEST", nil),
-					property("PRODID", "-//Example//Product//ID//EN", nil),
+					property("UID", "111111111111", nil),
+					property("DTSTART", "20200101", parse.Parameters{
+						"VALUE": []string{"DATE"},
+					}),
+					property("DTEND", "20200110", parse.Parameters{
+						"VALUE": []string{"DATE"},
+					}),
 				},
-				Version:   "2.0",
-				Method:    "REQUEST",
-				ProductID: "-//Example//Product//ID//EN",
-				Calscale:  "GREGORIAN",
-				Events: []parse.Event{
-					{
-						Properties: []parse.Property{
-							property("UID", "111111111111", nil),
-							property("DTSTART", "20200101", parse.Parameters{
-								"VALUE": []string{"DATE"},
-							}),
-							property("DTEND", "20200110", parse.Parameters{
-								"VALUE": []string{"DATE"},
-							}),
-						},
-						UID:   "111111111111",
-						Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
-						End:   time.Date(2020, time.January, 10, 0, 0, 0, 0, time.Local),
-					},
-					{
-						Properties: []parse.Property{
-							property("UID", "222222222222", nil),
-							property("DTSTART", "20200201", parse.Parameters{
-								"VALUE": []string{"DATE"},
-							}),
-							property("DTEND", "20200210", parse.Parameters{
-								"VALUE": []string{"DATE"},
-							}),
-							property("DTSTAMP", "20200210T103000Z", parse.Parameters{
-								"VALUE": []string{"DATE-TIME"},
-							}),
-						},
-						UID:       "222222222222",
-						Start:     time.Date(2020, time.February, 1, 0, 0, 0, 0, time.Local),
-						End:       time.Date(2020, time.February, 10, 0, 0, 0, 0, time.Local),
-						Timestamp: time.Date(2020, time.February, 10, 10, 30, 00, 00, time.UTC),
-					},
+				UID:   "111111111111",
+				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
+				End:   time.Date(2020, time.January, 10, 0, 0, 0, 0, time.Local),
+			},
+			{
+				Properties: []parse.Property{
+					property("UID", "222222222222", nil),
+					property("DTSTART", "20200201", parse.Parameters{
+						"VALUE": []string{"DATE"},
+					}),
+					property("DTEND", "20200210", parse.Parameters{
+						"VALUE": []string{"DATE"},
+					}),
+					property("DTSTAMP", "20200210T103000Z", parse.Parameters{
+						"VALUE": []string{"DATE-TIME"},
+					}),
 				},
+				UID:       "222222222222",
+				Start:     time.Date(2020, time.February, 1, 0, 0, 0, 0, time.Local),
+				End:       time.Date(2020, time.February, 10, 0, 0, 0, 0, time.Local),
+				Timestamp: time.Date(2020, time.February, 10, 10, 30, 00, 00, time.UTC),
 			},
 		},
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
-			res, err := parse.Items(lexItems(test.items...))
-			assert.Nil(t, err)
-			assert.Equal(t, test.expected, res)
-		})
-	}
+	res, err := parse.Items(lexItems(items...))
+	assert.Nil(t, err)
+	assert.Equal(t, expected, res)
 }
 
-func TestParse_timeParsing(t *testing.T) {
+func TestItems_timeParsing(t *testing.T) {
 	tests := map[string]struct {
 		items  []lex.Item
 		expect func(*testing.T, parse.Calendar)
@@ -222,7 +210,7 @@ func TestParse_timeParsing(t *testing.T) {
 	}
 }
 
-func TestParse_paramValues(t *testing.T) {
+func TestItems_paramValues(t *testing.T) {
 	tests := map[string]struct {
 		items  []lex.Item
 		expect func(*testing.T, parse.Calendar)
@@ -273,7 +261,7 @@ func TestParse_paramValues(t *testing.T) {
 	}
 }
 
-func TestParse_location(t *testing.T) {
+func TestItems_location(t *testing.T) {
 	locs := [...]*time.Location{
 		time.UTC,
 		time.Local,
@@ -320,12 +308,130 @@ func parseLocationTest(loc *time.Location, layout string, expected time.Time) fu
 	}
 }
 
-func TestParse_context(t *testing.T) {
+func TestItems_context(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	_, err := parse.Items(lexItems(), parse.Context(ctx))
 	assert.Equal(t, &parse.Error{Err: ctx.Err()}, err)
+}
+
+func TestItems_event(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected parse.Event
+	}{
+		{
+			name: "explicit DTSTART (DATE) and DTEND (DATE)",
+			input: `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART:20200101
+DTEND:20200510
+END:VEVENT
+END:VCALENDAR`,
+			expected: parse.Event{
+				Properties: []parse.Property{
+					property("DTSTART", "20200101", nil),
+					property("DTEND", "20200510", nil),
+				},
+				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
+				End:   time.Date(2020, time.May, 10, 0, 0, 0, 0, time.Local),
+			},
+		},
+		{
+			name: "implicit DTEND via DURATION",
+			input: `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART:20200101
+DURATION:P2W4D5H2M10S
+END:VEVENT
+END:VCALENDAR`,
+			expected: parse.Event{
+				Properties: []parse.Property{
+					property("DTSTART", "20200101", nil),
+					property("DURATION", "P2W4D5H2M10S", nil),
+				},
+				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
+				End: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local).
+					AddDate(0, 0, 14).AddDate(0, 0, 4).
+					Add(5 * time.Hour).Add(2 * time.Minute).Add(10 * time.Second),
+			},
+		},
+		{
+			name: "implicit 1-day duration",
+			input: `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART:20200101
+END:VEVENT
+END:VCALENDAR`,
+			expected: parse.Event{
+				Properties: []parse.Property{
+					property("DTSTART", "20200101", nil),
+				},
+				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
+				End:   time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local).AddDate(0, 0, 1),
+			},
+		},
+		{
+			name: "implicit until-end-of-day duration",
+			input: `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART;VALUE=DATE-TIME:20200101T103020
+END:VEVENT
+END:VCALENDAR`,
+			expected: parse.Event{
+				Properties: []parse.Property{
+					property("DTSTART", "20200101T103020", parse.Parameters{"VALUE": []string{"DATE-TIME"}}),
+				},
+				Start: time.Date(2020, time.January, 1, 10, 30, 20, 0, time.Local),
+				End:   time.Date(2020, time.January, 2, 0, 0, 0, 0, time.Local),
+			},
+		},
+		{
+			name: "summary",
+			input: `BEGIN:VCALENDAR
+BEGIN:VEVENT
+SUMMARY:This is a
+  folded summary
+END:VEVENT
+END:VCALENDAR`,
+			expected: parse.Event{
+				Properties: []parse.Property{
+					property("SUMMARY", "This is a folded summary", nil),
+				},
+				Summary: "This is a folded summary",
+			},
+		},
+		{
+			name: "description",
+			input: `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DESCRIPTION;FMTTYPE=text/plain:A description with a parameter. Also
+  folded :)
+END:VEVENT
+END:VCALENDAR`,
+			expected: parse.Event{
+				Properties: []parse.Property{
+					property("DESCRIPTION", "A description with a parameter. Also folded :)", parse.Parameters{
+						"FMTTYPE": []string{"text/plain"},
+					}),
+				},
+				Description: "A description with a parameter. Also folded :)",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cal, err := parse.Items(lex.Text(test.input))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, test.expected, cal.Events[0])
+		})
+	}
 }
 
 func item(typ lex.ItemType, val string) lex.Item {

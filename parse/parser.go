@@ -12,46 +12,6 @@ import (
 
 var errEndOfItems = errors.New("end of items")
 
-// Calendar is a parsed iCalendar.
-type Calendar struct {
-	Properties []Property
-	ProductID  string
-	Version    string
-	Calscale   string
-	Method     string
-	Events     []Event
-	Alarms     []Alarm
-}
-
-// Event is a parsed iCalendar event.
-type Event struct {
-	Properties  []Property
-	UID         string
-	Alarms      []Alarm
-	Timestamp   time.Time
-	Start       time.Time
-	End         time.Time
-	Summary     string
-	Description string
-}
-
-// Alarm is a parsed iCalendar alarm.
-type Alarm struct {
-	Properties []Property
-	Action     string
-	Trigger    string
-}
-
-// Property is an iCalendar property / content-line.
-type Property struct {
-	Name   string
-	Params Parameters
-	Value  string
-}
-
-// Parameters are the parameters of a Property.
-type Parameters map[string][]string
-
 // Error is a parser error.
 type Error struct {
 	Err error
@@ -181,7 +141,7 @@ func (p *parser) errorf(format string, vals ...interface{}) error {
 }
 
 func (p *parser) unexpectedType(item lex.Item, expected lex.ItemType) error {
-	return p.errorf("expected item of type %v, but found %s", expected, item)
+	return p.errorf("expected item of type %v;got %s", expected, item)
 }
 
 func (p *parser) parse() (Calendar, error) {
@@ -222,13 +182,6 @@ loop:
 				return err
 			}
 			cal.Events = append(cal.Events, evt)
-		case lex.AlarmBegin:
-			p.backup()
-			alarm, err := p.parseAlarm()
-			if err != nil {
-				return err
-			}
-			cal.Alarms = append(cal.Alarms, alarm)
 		case lex.Name:
 			p.backup()
 			prop, err := p.parseProperty()
@@ -236,6 +189,8 @@ loop:
 				return err
 			}
 			cal.Properties = append(cal.Properties, prop)
+		default:
+			return p.errorf("unexpected item of type %s", item.Type)
 		}
 	}
 
@@ -317,7 +272,13 @@ func (p *parser) parseEvent() (Event, error) {
 			evt.Timestamp = t
 		case "SUMMARY":
 			evt.Summary = prop.Value
+		case "DESCRIPTION":
+			evt.Description = prop.Value
 		}
+	}
+
+	if err := evt.finalize(); err != nil {
+		return evt, err
 	}
 
 	return evt, nil
