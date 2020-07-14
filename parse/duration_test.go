@@ -13,31 +13,31 @@ func TestParseDuration(t *testing.T) {
 		expected time.Duration
 	}{
 		{
-			raw:      "P10S",
+			raw:      "PT10S",
 			expected: 10 * time.Second,
 		},
 		{
-			raw:      "P100S",
+			raw:      "PT100S",
 			expected: 100 * time.Second,
 		},
 		{
-			raw:      "P8M",
+			raw:      "PT8M",
 			expected: 8 * time.Minute,
 		},
 		{
-			raw:      "P5M40S",
+			raw:      "PT5M40S",
 			expected: 5*time.Minute + 40*time.Second,
 		},
 		{
-			raw:      "P4H",
+			raw:      "PT4H",
 			expected: 4 * time.Hour,
 		},
 		{
-			raw:      "P8H2M",
+			raw:      "PT8H2M",
 			expected: 8*time.Hour + 2*time.Minute,
 		},
 		{
-			raw:      "P2H10M2S",
+			raw:      "PT2H10M2S",
 			expected: 2*time.Hour + 10*time.Minute + 2*time.Second,
 		},
 		{
@@ -45,8 +45,12 @@ func TestParseDuration(t *testing.T) {
 			expected: 4 * 7 * 24 * time.Hour,
 		},
 		{
-			raw:      "P2W7D",
-			expected: 2*7*24*time.Hour + 7*24*time.Hour,
+			raw:      "P7D",
+			expected: 7 * 24 * time.Hour,
+		},
+		{
+			raw:      "P7DT4H10S",
+			expected: 7*24*time.Hour + 4*time.Hour + 10*time.Second,
 		},
 	}
 

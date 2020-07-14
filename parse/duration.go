@@ -40,29 +40,63 @@ func (p *durationParser) parse() (time.Duration, error) {
 	}
 
 	if r, err = p.next(); r != 'P' {
-		return 0, fmt.Errorf("expected 'P' at pos %d; got %s", p.pos+1, string(r))
+		return 0, fmt.Errorf("expected 'P' at pos %d; got %s", p.pos, string(r))
 	}
 
+	if r, err = p.next(); err != nil {
+		return 0, p.unexpectedEnd()
+	}
+
+	if r == 'T' {
+		dur, err := p.parseTime()
+		if err != nil {
+			return 0, err
+		}
+		return dur * multiplier, nil
+	}
+	p.backup()
+
+	num, err := p.parseDigits()
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse digits: %w", err)
+	}
+
+	if r, err = p.next(); err != nil {
+		return 0, p.unexpectedEnd()
+	}
+
+	switch r {
+	case 'W':
+		return week * time.Duration(num) * multiplier, nil
+	case 'D':
+		dayDur := day * time.Duration(num)
+
+		if r, err = p.next(); err != nil {
+			return dayDur * multiplier, nil
+		}
+
+		if r == 'T' {
+			timeDur, err := p.parseTime()
+			if err != nil {
+				return 0, err
+			}
+			return (dayDur + timeDur) * multiplier, nil
+		}
+
+		return 0, fmt.Errorf("unexpected %s at pos %d", string(r), p.pos)
+	default:
+		return 0, fmt.Errorf("expected one of [W D] at pos %d; got %s", p.pos, string(r))
+	}
+}
+
+func (p *durationParser) parseTime() (time.Duration, error) {
+	var r rune
 	var total time.Duration
 
 	for {
-		var digits string
-
-		if r, err = p.next(); err != nil {
-			return 0, p.unexpectedEnd()
-		}
-
-		for unicode.IsDigit(r) {
-			digits += string(r)
-			if r, err = p.next(); err != nil {
-				return 0, p.unexpectedEnd()
-			}
-		}
-		p.backup()
-
-		num, err := strconv.Atoi(digits)
+		num, err := p.parseDigits()
 		if err != nil {
-			return 0, fmt.Errorf("failed to parse digits in duration: %w", err)
+			return 0, fmt.Errorf("failed to parse digits: %w", err)
 		}
 
 		if r, err = p.next(); err != nil {
@@ -72,10 +106,6 @@ func (p *durationParser) parse() (time.Duration, error) {
 		var one time.Duration
 
 		switch r {
-		case 'W':
-			one = week
-		case 'D':
-			one = day
 		case 'H':
 			one = time.Hour
 		case 'M':
@@ -83,16 +113,41 @@ func (p *durationParser) parse() (time.Duration, error) {
 		case 'S':
 			one = time.Second
 		default:
-			return 0, fmt.Errorf("expected one of [W D H M S] at pos %d; got %s", p.pos+1, string(r))
+			return 0, fmt.Errorf("expected one of [H M S] at pos %d; got %s", p.pos, string(r))
 		}
 
 		total += one * time.Duration(num)
 
 		if r, err = p.next(); err != nil {
-			return total * multiplier, nil
+			return total, nil
 		}
 		p.backup()
 	}
+}
+
+func (p *durationParser) parseDigits() (int, error) {
+	var r rune
+	var err error
+	var digits string
+
+	if r, err = p.next(); err != nil {
+		return 0, p.unexpectedEnd()
+	}
+
+	for unicode.IsDigit(r) {
+		digits += string(r)
+		if r, err = p.next(); err != nil {
+			return 0, p.unexpectedEnd()
+		}
+	}
+	p.backup()
+
+	num, err := strconv.Atoi(digits)
+	if err != nil {
+		return 0, fmt.Errorf("string to int conversion failed: %w", err)
+	}
+
+	return num, nil
 }
 
 var errEndOfDuration = errors.New("end of duration")
@@ -113,5 +168,5 @@ func (p *durationParser) backup() {
 }
 
 func (p *durationParser) unexpectedEnd() error {
-	return fmt.Errorf("unexpected end of duration at pos %d", p.pos+1)
+	return fmt.Errorf("unexpected end of duration at pos %d", p.pos)
 }
