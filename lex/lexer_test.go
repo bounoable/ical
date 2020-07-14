@@ -123,7 +123,7 @@ func TestReader(t *testing.T) {
 			},
 			expected: []lex.Item{
 				beginCalendar(),
-				item(lex.Error, "missing carriage return (CR) at pos 17"),
+				item(lex.Error, "missing carriage return (CR) at pos 16"),
 			},
 		},
 		"folded (CRLF)": {

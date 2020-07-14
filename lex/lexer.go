@@ -252,5 +252,5 @@ func (l *lexer) unexpectedEOF() stateFunc {
 }
 
 func (l *lexer) pos() int {
-	return l.consumed + l.bufPos + 1
+	return l.consumed + l.bufPos
 }
