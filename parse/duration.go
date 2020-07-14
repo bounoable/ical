@@ -25,6 +25,14 @@ type durationParser struct {
 const day = time.Hour * 24
 const week = day * 7
 
+// dur-value  = (["+"] / "-") "P" (dur-date / dur-time / dur-week)
+// dur-date   = dur-day [dur-time]
+// dur-time   = "T" (dur-hour / dur-minute / dur-second)
+// dur-week   = 1*DIGIT "W"
+// dur-hour   = 1*DIGIT "H" [dur-minute]
+// dur-minute = 1*DIGIT "M" [dur-second]
+// dur-second = 1*DIGIT "S"
+// dur-day    = 1*DIGIT "D"
 func (p *durationParser) parse() (time.Duration, error) {
 	r, err := p.next()
 	if err != nil {
@@ -50,7 +58,7 @@ func (p *durationParser) parse() (time.Duration, error) {
 	if r == 'T' {
 		dur, err := p.parseTime()
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to parse time duration: %w", err)
 		}
 		return dur * multiplier, nil
 	}
