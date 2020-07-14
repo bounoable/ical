@@ -22,8 +22,8 @@ type durationParser struct {
 	width int
 }
 
-var day = time.Hour * 24
-var week = day * 7
+const day = time.Hour * 24
+const week = day * 7
 
 func (p *durationParser) parse() (time.Duration, error) {
 	r, err := p.next()
