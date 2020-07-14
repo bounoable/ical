@@ -41,6 +41,10 @@ func (it ItemType) String() string {
 		return "<event:begin>"
 	case EventEnd:
 		return "<event:end>"
+	case AlarmBegin:
+		return "<alarm:begin>"
+	case AlarmEnd:
+		return "<alarm:end>"
 	case Name:
 		return "<contentline:name>"
 	case ParamName:

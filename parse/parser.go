@@ -141,7 +141,7 @@ func (p *parser) errorf(format string, vals ...interface{}) error {
 }
 
 func (p *parser) unexpectedType(item lex.Item, expected lex.ItemType) error {
-	return p.errorf("expected item of type %v;got %s", expected, item)
+	return p.errorf("expected item of type %v; got %s", expected, item)
 }
 
 func (p *parser) parse() (Calendar, error) {
@@ -221,15 +221,26 @@ func (p *parser) parseEvent() (Event, error) {
 		return evt, err
 	}
 
+loop:
 	for {
 		item, err = p.next()
 		if err != nil {
 			return evt, err
 		}
 
-		if item.Type == lex.EventEnd {
+		switch item.Type {
+		case lex.EventEnd:
 			p.backup()
-			break
+			break loop
+		case lex.AlarmBegin:
+			p.backup()
+			alarm, err := p.parseAlarm()
+			if err != nil {
+				return evt, fmt.Errorf("failed to parse alarm: %w", err)
+			}
+			evt.Alarms = append(evt.Alarms, alarm)
+			continue
+		default:
 		}
 
 		if item.Type != lex.Name {

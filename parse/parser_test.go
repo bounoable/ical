@@ -2,6 +2,7 @@ package parse_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -319,104 +320,60 @@ func TestItems_context(t *testing.T) {
 func TestItems_event(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    string
+		body     string
 		expected parse.Event
 	}{
 		{
 			name: "explicit DTSTART (DATE) and DTEND (DATE)",
-			input: `BEGIN:VCALENDAR
-BEGIN:VEVENT
-DTSTART:20200101
-DTEND:20200510
-END:VEVENT
-END:VCALENDAR`,
+			body: `DTSTART:20200101
+DTEND:20200510`,
 			expected: parse.Event{
-				Properties: []parse.Property{
-					property("DTSTART", "20200101", nil),
-					property("DTEND", "20200510", nil),
-				},
 				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
 				End:   time.Date(2020, time.May, 10, 0, 0, 0, 0, time.Local),
 			},
 		},
 		{
 			name: "implicit DTEND via DURATION",
-			input: `BEGIN:VCALENDAR
-BEGIN:VEVENT
-DTSTART:20200101
-DURATION:P2W4D5H2M10S
-END:VEVENT
-END:VCALENDAR`,
+			body: `DTSTART:20200101
+DURATION:P12DT5H2M10S`,
 			expected: parse.Event{
-				Properties: []parse.Property{
-					property("DTSTART", "20200101", nil),
-					property("DURATION", "P2W4D5H2M10S", nil),
-				},
 				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
 				End: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local).
-					AddDate(0, 0, 14).AddDate(0, 0, 4).
-					Add(5 * time.Hour).Add(2 * time.Minute).Add(10 * time.Second),
+					AddDate(0, 0, 12).     // 12D
+					Add(5 * time.Hour).    // 5H
+					Add(2 * time.Minute).  // 2M
+					Add(10 * time.Second), // 10S
 			},
 		},
 		{
 			name: "implicit 1-day duration",
-			input: `BEGIN:VCALENDAR
-BEGIN:VEVENT
-DTSTART:20200101
-END:VEVENT
-END:VCALENDAR`,
+			body: `DTSTART:20200101`,
 			expected: parse.Event{
-				Properties: []parse.Property{
-					property("DTSTART", "20200101", nil),
-				},
 				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
 				End:   time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local).AddDate(0, 0, 1),
 			},
 		},
 		{
 			name: "implicit until-end-of-day duration",
-			input: `BEGIN:VCALENDAR
-BEGIN:VEVENT
-DTSTART;VALUE=DATE-TIME:20200101T103020
-END:VEVENT
-END:VCALENDAR`,
+			body: `DTSTART;VALUE=DATE-TIME:20200101T103020`,
 			expected: parse.Event{
-				Properties: []parse.Property{
-					property("DTSTART", "20200101T103020", parse.Parameters{"VALUE": []string{"DATE-TIME"}}),
-				},
 				Start: time.Date(2020, time.January, 1, 10, 30, 20, 0, time.Local),
 				End:   time.Date(2020, time.January, 2, 0, 0, 0, 0, time.Local),
 			},
 		},
 		{
 			name: "summary",
-			input: `BEGIN:VCALENDAR
-BEGIN:VEVENT
-SUMMARY:This is a
-  folded summary
-END:VEVENT
-END:VCALENDAR`,
+			body: `SUMMARY:This is a
+  folded summary`,
 			expected: parse.Event{
-				Properties: []parse.Property{
-					property("SUMMARY", "This is a folded summary", nil),
-				},
 				Summary: "This is a folded summary",
 			},
 		},
 		{
 			name: "description",
-			input: `BEGIN:VCALENDAR
-BEGIN:VEVENT
-DESCRIPTION;FMTTYPE=text/plain:A description with a parameter. Also
-  folded :)
-END:VEVENT
-END:VCALENDAR`,
+			body: `DESCRIPTION;FMTTYPE=text/plain:A description with a parameter. Also
+  folded :)`,
 			expected: parse.Event{
-				Properties: []parse.Property{
-					property("DESCRIPTION", "A description with a parameter. Also folded :)", parse.Parameters{
-						"FMTTYPE": []string{"text/plain"},
-					}),
-				},
 				Description: "A description with a parameter. Also folded :)",
 			},
 		},
@@ -424,12 +381,69 @@ END:VCALENDAR`,
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cal, err := parse.Items(lex.Text(test.input))
+			input := fmt.Sprintf("BEGIN:VCALENDAR\nBEGIN:VEVENT\n%s\nEND:VEVENT\nEND:VCALENDAR", test.body)
+			cal, err := parse.Items(lex.Text(input))
 			if err != nil {
 				t.Fatal(err)
 			}
 
+			test.expected.Properties = cal.Events[0].Properties
 			assert.Equal(t, test.expected, cal.Events[0])
+		})
+	}
+}
+
+func TestItems_alarm(t *testing.T) {
+	tests := []struct {
+		name     string
+		body     string
+		expected []parse.Alarm
+	}{
+		{
+			name: "audio alarm / precise time / repeat 4 times every 15 minutes",
+			body: `BEGIN:VALARM
+TRIGGER;VALUE=DATE-TIME:19970317T133000Z
+REPEAT:4
+DURATION:PT15M
+ACTION:AUDIO
+ATTACH;FMTTYPE=audio/basic:ftp://example.com/pub/
+ sounds/bell-01.aud
+END:VALARM`,
+			expected: []parse.Alarm{{
+				Properties: []parse.Property{
+					property("TRIGGER", "19970317T133000Z", parse.Parameters{
+						"VALUE": []string{"DATE-TIME"},
+					}),
+					property("REPEAT", "4", nil),
+					property("DURATION", "PT15M", nil),
+					property("ACTION", "AUDIO", nil),
+					property("ATTACH", "ftp://example.com/pub/sounds/bell-01.aud", parse.Parameters{
+						"FMTTYPE": []string{"audio/basic"},
+					}),
+				},
+				Action:  "AUDIO",
+				Trigger: "19970317T133000Z",
+			}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			input := fmt.Sprintf(
+				"%s\n%s\n%s\n%s\n%s",
+				"BEGIN:VCALENDAR",
+				"BEGIN:VEVENT",
+				test.body,
+				"END:VEVENT",
+				"END:VCALENDAR",
+			)
+
+			cal, err := parse.Items(lex.Text(input))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, test.expected, cal.Events[0].Alarms)
 		})
 	}
 }
