@@ -10,7 +10,7 @@ import (
 
 // Calendar writes the .ics file for cal into w.
 func Calendar(cal parse.Calendar, w io.Writer) error {
-	return (&Encoder{w}).Encode(cal)
+	return NewEncoder(w).Encode(cal)
 }
 
 // NewEncoder returns a new Encoder that writes to w.
