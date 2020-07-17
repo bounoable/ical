@@ -121,3 +121,25 @@ func ExampleParse_explicitTimeLocation() {
 		fmt.Println(evt)
 	}
 }
+
+func ExampleEncode() {
+	f, err := os.Open("/path/to/calendar.ics")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	cal, err := ical.Parse(f)
+	if err != nil {
+		panic(err)
+	}
+
+	out, err := os.Create("/path/to/new_calendar.ics")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := ical.Encode(cal, out); err != nil {
+		panic(err)
+	}
+}
