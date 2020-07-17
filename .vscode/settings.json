@@ -1,6 +1,7 @@
 {
   "conventionalCommits.scopes": [
     "lex",
-    "parse"
+    "parse",
+    "encode"
   ]
 }
