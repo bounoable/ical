@@ -2,6 +2,7 @@ package encode
 
 import (
 	"io"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -60,15 +61,30 @@ func (enc *Encoder) string(s string) error {
 }
 
 func (enc *Encoder) property(prop parse.Property) error {
+	type parameter struct {
+		name   string
+		values []string
+	}
+
 	var err error
 	var linebuilder strings.Builder
 	linebuilder.WriteString(prop.Name)
 
+	params := make([]parameter, 0, len(prop.Params))
 	for name, vals := range prop.Params {
-		if _, err = linebuilder.WriteString(";" + name); err != nil {
+		params = append(params, parameter{
+			name:   name,
+			values: vals,
+		})
+	}
+
+	sort.Slice(params, func(a, b int) bool { return params[a].name < params[b].name })
+
+	for _, param := range params {
+		if _, err = linebuilder.WriteString(";" + param.name); err != nil {
 			return err
 		}
-		valstr := strings.Join(vals, ",")
+		valstr := strings.Join(param.values, ",")
 		if _, err = linebuilder.WriteString("=" + valstr); err != nil {
 			return err
 		}
