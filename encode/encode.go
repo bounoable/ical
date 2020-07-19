@@ -1,6 +1,7 @@
 package encode
 
 import (
+	"fmt"
 	"io"
 	"sort"
 	"strings"
@@ -34,13 +35,13 @@ func (enc *Encoder) Encode(cal parse.Calendar) error {
 
 	for _, prop := range cal.Properties {
 		if err = enc.property(prop); err != nil {
-			return err
+			return fmt.Errorf("encode property: %w", err)
 		}
 	}
 
 	for _, evt := range cal.Events {
 		if err = enc.event(evt); err != nil {
-			return err
+			return fmt.Errorf("encode event: %w", err)
 		}
 	}
 
@@ -52,12 +53,18 @@ func (enc *Encoder) Encode(cal parse.Calendar) error {
 }
 
 func (enc *Encoder) write(p []byte) (int, error) {
-	return enc.w.Write(p)
+	n, err := enc.w.Write(p)
+	if err != nil {
+		return n, fmt.Errorf("write: %w", err)
+	}
+	return n, nil
 }
 
 func (enc *Encoder) string(s string) error {
-	_, err := enc.w.Write([]byte(s))
-	return err
+	if _, err := enc.w.Write([]byte(s)); err != nil {
+		return fmt.Errorf("write string: %w", err)
+	}
+	return nil
 }
 
 func (enc *Encoder) property(prop parse.Property) error {
@@ -82,16 +89,16 @@ func (enc *Encoder) property(prop parse.Property) error {
 
 	for _, param := range params {
 		if _, err = linebuilder.WriteString(";" + param.name); err != nil {
-			return err
+			return fmt.Errorf("linebuilder: %w", err)
 		}
 		valstr := strings.Join(param.values, ",")
 		if _, err = linebuilder.WriteString("=" + valstr); err != nil {
-			return err
+			return fmt.Errorf("linebuilder: %w", err)
 		}
 	}
 
 	if _, err = linebuilder.WriteString(":" + prop.Value); err != nil {
-		return err
+		return fmt.Errorf("linebuilder: %w", err)
 	}
 
 	line := linebuilder.String()
@@ -120,13 +127,13 @@ func (enc *Encoder) event(evt parse.Event) error {
 
 	for _, prop := range evt.Properties {
 		if err = enc.property(prop); err != nil {
-			return err
+			return fmt.Errorf("encode property: %w", err)
 		}
 	}
 
 	for _, alarm := range evt.Alarms {
 		if err = enc.alarm(alarm); err != nil {
-			return err
+			return fmt.Errorf("encode alarm: %w", err)
 		}
 	}
 
@@ -141,7 +148,7 @@ func (enc *Encoder) alarm(alarm parse.Alarm) error {
 
 	for _, prop := range alarm.Properties {
 		if err = enc.property(prop); err != nil {
-			return err
+			return fmt.Errorf("encode property: %w", err)
 		}
 	}
 
