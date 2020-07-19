@@ -124,5 +124,26 @@ func (enc *Encoder) event(evt parse.Event) error {
 		}
 	}
 
+	for _, alarm := range evt.Alarms {
+		if err = enc.alarm(alarm); err != nil {
+			return err
+		}
+	}
+
 	return enc.string("\r\nEND:VEVENT")
+}
+
+func (enc *Encoder) alarm(alarm parse.Alarm) error {
+	var err error
+	if err = enc.string("\r\nBEGIN:VALARM"); err != nil {
+		return err
+	}
+
+	for _, prop := range alarm.Properties {
+		if err = enc.property(prop); err != nil {
+			return err
+		}
+	}
+
+	return enc.string("\r\nEND:VALARM")
 }

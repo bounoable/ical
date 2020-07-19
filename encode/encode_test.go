@@ -38,6 +38,16 @@ func TestCalendar(t *testing.T) {
 							testutil.Property("SUMMARY", "foo summary", nil),
 							testutil.Property("DESCRIPTION", "this is a long description that should be folded onto the next line", nil),
 						},
+						Alarms: []parse.Alarm{
+							{
+								Properties: []parse.Property{
+									testutil.Property("ACTION", "AUDIO", nil),
+									testutil.Property("TRIGGER", "20200301T103000Z", parse.Parameters{
+										"VALUE": []string{"DATE-TIME"},
+									}),
+								},
+							},
+						},
 						// UID:         "111111111111",
 						// Summary:     "foo summary",
 						// Description: "very long description that should be folded onto the next line",
@@ -59,6 +69,10 @@ DTEND;VALUE=DATE-TIME:20200301T103000
 SUMMARY:foo summary
 DESCRIPTION:this is a long description that should be folded onto the next 
  line
+BEGIN:VALARM
+ACTION:AUDIO
+TRIGGER;VALUE=DATE-TIME:20200301T103000Z
+END:VALARM
 END:VEVENT
 END:VCALENDAR`,
 		},
