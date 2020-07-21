@@ -10,20 +10,13 @@ import (
 	"github.com/bounoable/ical/parse"
 )
 
-// Calendar writes the .ics file for cal into w.
-func Calendar(cal parse.Calendar, w io.Writer) error {
-	return NewEncoder(w).Encode(cal)
-}
-
 // NewEncoder returns a new Encoder that writes to w.
 func NewEncoder(w io.Writer) *Encoder {
 	return &Encoder{w}
 }
 
 // Encoder writes .ics files.
-type Encoder struct {
-	w io.Writer
-}
+type Encoder struct{ w io.Writer }
 
 // Encode writes cal as a .ics file to the writer.
 func (enc *Encoder) Encode(cal parse.Calendar) error {

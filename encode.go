@@ -11,7 +11,12 @@ import (
 
 // Encode writes the .ics file for cal into w.
 func Encode(cal Calendar, w io.Writer) error {
-	return encode.Calendar(parse.Calendar(cal), w)
+	return NewEncoder(w).Encode(parse.Calendar(cal))
+}
+
+// NewEncoder returns a new encode.Encoder that writes to w.
+func NewEncoder(w io.Writer) *encode.Encoder {
+	return encode.NewEncoder(w)
 }
 
 // Marshal returns the encoded bytes of cal.
