@@ -203,6 +203,26 @@ func TestReader(t *testing.T) {
 				testutil.Item(lex.EOF, ""),
 			},
 		},
+		"empty value": {
+			filepath: filepath.Join(wd, "testdata/empty_value.ics"),
+			expected: []lex.Item{
+				testutil.BeginCalendar(),
+				testutil.BeginEvent(),
+				testutil.Item(lex.Name, "UID"),
+				testutil.Item(lex.Value, ""),
+				testutil.Item(lex.Name, "DTSTAMP"),
+				testutil.Item(lex.ParamName, "VALUE"),
+				testutil.Item(lex.ParamValue, "DATE-TIME"),
+				testutil.Item(lex.Value, "20191010T000000Z"),
+				testutil.Item(lex.Name, "DTSTART"),
+				testutil.Item(lex.Value, "20200101"),
+				testutil.Item(lex.Name, "DTEND"),
+				testutil.Item(lex.Value, "20200110"),
+				testutil.EndEvent(),
+				testutil.EndCalendar(),
+				testutil.Item(lex.EOF, ""),
+			},
+		},
 	}
 
 	for _, test := range tests {

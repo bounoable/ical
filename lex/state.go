@@ -122,10 +122,15 @@ func lexName(l *lexer) stateFunc {
 // NON-US-ASCII  = UTF8-2 / UTF8-3 / UTF8-4 ; UTF8-2, UTF8-3, and UTF8-4 are defined in [RFC3629]
 // CONTROL       = %x00-08 / %x0A-1F / %x7F ; All the controls except HTAB
 func lexValue(l *lexer) stateFunc {
+	if l.hasPrefix("\r\n") || l.hasPrefix("\n") {
+		l.emit(Value)
+		return lexNewLine
+	}
+
 	for {
 		r := l.next()
 		if r == eof {
-			l.emitAdvanced(Value)
+			l.emit(Value)
 			return nil
 		}
 
