@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCalendar(t *testing.T) {
+func TestEncoder_Encode(t *testing.T) {
 	tests := []struct {
 		calendar parse.Calendar
 		expected string
@@ -82,7 +82,8 @@ END:VCALENDAR`,
 		test.expected = strings.ReplaceAll(test.expected, "\n", "\r\n")
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			var buf strings.Builder
-			err := encode.Calendar(test.calendar, &buf)
+			enc := encode.NewEncoder(&buf)
+			err := enc.Encode(test.calendar)
 			if err != nil {
 				t.Fatal(err)
 			}
