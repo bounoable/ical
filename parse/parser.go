@@ -430,7 +430,7 @@ func (p *parser) parseTime(prop Property) (time.Time, error) {
 		layout = layoutDateTimeUTC
 		loc = time.UTC
 	} else {
-		layout = parseLayout(prop.Params)
+		layout = parseLayout(prop)
 
 		if p.loc != nil {
 			loc = p.loc
@@ -444,29 +444,45 @@ func (p *parser) parseTime(prop Property) (time.Time, error) {
 		}
 	}
 
-	if layout == layoutDate && len(prop.Value) != len(layoutDate) {
+	if layout == layoutDate && len(prop.Value) != len(layout) {
 		layout = layoutDateTimeLocal
 	}
 
 	return time.ParseInLocation(layout, prop.Value, loc)
 }
 
-func parseLayout(params Parameters) string {
-	for name, values := range params {
+func parseLayout(prop Property) string {
+	var layout string
+
+	for name, values := range prop.Params {
 		if name != "VALUE" {
 			continue
 		}
 
 		for _, val := range values {
 			switch val {
-			case "DATE":
-				return layoutDate
 			case "DATE-TIME":
-				return layoutDateTimeLocal
+				layout = layoutDateTimeLocal
+			default:
+				layout = layoutDate
 			}
 		}
+
+		break
 	}
-	return layoutDate
+
+	if len(layout) != len(prop.Value) {
+		switch len(prop.Value) {
+		case len(layoutDate):
+			layout = layoutDate
+		case len(layoutDateTimeLocal):
+			layout = layoutDateTimeLocal
+		case len(layoutDateTimeUTC):
+			layout = layoutDateTimeUTC
+		}
+	}
+
+	return layout
 }
 
 var (

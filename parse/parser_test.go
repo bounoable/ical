@@ -240,6 +240,21 @@ func TestItems_timeParsing(t *testing.T) {
 				assert.Equal(t, time.Date(2020, time.January, 1, 12, 30, 5, 0, time.UTC).Unix(), cal.Events[0].Timestamp.Unix())
 			},
 		},
+		"DATE-TIME (malformed as DATE)": {
+			items: []lex.Item{
+				testutil.BeginCalendar(),
+				testutil.BeginEvent(),
+				testutil.Item(lex.Name, "DTSTAMP"),
+				testutil.Item(lex.ParamName, "VALUE"),
+				testutil.Item(lex.ParamValue, "DATE-TIME"),
+				testutil.Item(lex.Value, "20200101"),
+				testutil.EndEvent(),
+				testutil.EndCalendar(),
+			},
+			expect: func(t *testing.T, cal parse.Calendar) {
+				assert.Equal(t, time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local).Unix(), cal.Events[0].Timestamp.Unix())
+			},
+		},
 		"DATE (malformed as DATE-TIME (local))": {
 			items: []lex.Item{
 				testutil.BeginCalendar(),
