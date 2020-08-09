@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -419,6 +421,8 @@ const (
 )
 
 func (p *parser) parseTime(prop Property) (time.Time, error) {
+	prop.Value = normalizeDateTimeValue(prop.Value)
+
 	var layout string
 	loc := time.Local
 
@@ -463,4 +467,91 @@ func parseLayout(params Parameters) string {
 		}
 	}
 	return layoutDate
+}
+
+var (
+	shortTimeLayoutRE = regexp.MustCompile(`([0-9]+T)([0-9]{3,5})(Z?)$`)
+)
+
+func normalizeDateTimeValue(val string) string {
+	return replaceAllStringSubmatchFunc(shortTimeLayoutRE, val, func(groups []string) string {
+		if len(groups) < 4 {
+			return val
+		}
+
+		timeVal := groups[2]
+		switch len(timeVal) {
+		case 3: // Hms
+			timeVal = fmt.Sprintf("0%s0%s0%s", string(timeVal[0]), string(timeVal[1]), string(timeVal[2]))
+		case 4: // HHms | Hmms
+			timeVal = normalizeTimeValue(timeVal, 4)
+		case 5: // HHmms
+			timeVal = normalizeTimeValue(timeVal, 5)
+		default:
+			return val
+		}
+
+		return fmt.Sprintf("%s%s%s", groups[1], timeVal, groups[3])
+	})
+}
+
+func replaceAllStringSubmatchFunc(re *regexp.Regexp, str string, repl func([]string) string) string {
+	var result string
+	var lastIndex int
+	for _, v := range re.FindAllSubmatchIndex([]byte(str), -1) {
+		groups := []string{}
+		for i := 0; i < len(v); i += 2 {
+			groups = append(groups, str[v[i]:v[i+1]])
+		}
+		result += str[lastIndex:v[0]] + repl(groups)
+		lastIndex = v[1]
+	}
+	return result + str[lastIndex:]
+}
+
+var (
+	now = time.Now()
+)
+
+func normalizeTimeValue(val string, digits int) string {
+	var hour, minute, second, offset, foundCount int
+	found := func() bool { return foundCount >= (digits - 3) }
+
+	if hour, _ = strconv.Atoi(val[offset : offset+2]); hour < 24 {
+		foundCount++
+		offset += 2
+	} else {
+		hour, _ = strconv.Atoi(val[offset : offset+1])
+		offset++
+	}
+
+	if !found() {
+		if minute, _ = strconv.Atoi(val[offset : offset+2]); minute < 60 {
+			foundCount++
+			offset += 2
+		} else {
+			minute, _ = strconv.Atoi(val[offset : offset+1])
+			offset++
+		}
+	} else {
+		minute, _ = strconv.Atoi(val[offset : offset+1])
+		offset++
+	}
+
+	if !found() {
+		if second, _ = strconv.Atoi(val[offset : offset+2]); second < 60 {
+			foundCount++
+			offset += 2
+		} else {
+			second, _ = strconv.Atoi(val[offset : offset+1])
+			offset++
+		}
+	} else {
+		second, _ = strconv.Atoi(val[offset : offset+1])
+		offset++
+	}
+
+	return time.
+		Date(now.Year(), now.Month(), now.Day(), hour, minute, second, 0, time.UTC).
+		Format("150405")
 }
