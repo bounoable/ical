@@ -428,6 +428,10 @@ const (
 )
 
 func (p *parser) parseDTEND(prop Property) (time.Time, error) {
+	if len(prop.Value) != len(layoutDate) {
+		return p.parseTime(prop)
+	}
+
 	t, err := p.parseTime(prop)
 	if err != nil || !p.inclusiveEnds {
 		return t, err
