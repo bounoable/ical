@@ -317,6 +317,72 @@ func TestItems_timeParsing(t *testing.T) {
 	}
 }
 
+func TestItems_inclusiveEnds(t *testing.T) {
+	tests := map[string]struct {
+		inclusive bool
+		items     []lex.Item
+		expected  parse.Event
+	}{
+		"non-inclusive": {
+			items: []lex.Item{
+				testutil.BeginCalendar(),
+				testutil.BeginEvent(),
+				testutil.Item(lex.Name, "DTSTART"),
+				testutil.Item(lex.Value, "20200101"),
+				testutil.Item(lex.Name, "DTEND"),
+				testutil.Item(lex.Value, "20200110"),
+				testutil.EndEvent(),
+				testutil.EndCalendar(),
+			},
+			expected: parse.Event{
+				Properties: []parse.Property{
+					testutil.Property("DTSTART", "20200101", nil),
+					testutil.Property("DTEND", "20200110", nil),
+				},
+				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
+				End:   time.Date(2020, time.January, 10, 0, 0, 0, 0, time.Local),
+			},
+		},
+		"inclusive": {
+			inclusive: true,
+			items: []lex.Item{
+				testutil.BeginCalendar(),
+				testutil.BeginEvent(),
+				testutil.Item(lex.Name, "DTSTART"),
+				testutil.Item(lex.Value, "20200101"),
+				testutil.Item(lex.Name, "DTEND"),
+				testutil.Item(lex.Value, "20200110"),
+				testutil.EndEvent(),
+				testutil.EndCalendar(),
+			},
+			expected: parse.Event{
+				Properties: []parse.Property{
+					testutil.Property("DTSTART", "20200101", nil),
+					testutil.Property("DTEND", "20200110", nil),
+				},
+				Start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.Local),
+				End:   time.Date(2020, time.January, 11, 0, 0, 0, 0, time.Local),
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			var opts []parse.Option
+			if test.inclusive {
+				opts = append(opts, parse.InclusiveEnds)
+			}
+
+			cal, err := parse.Items(testutil.LexItems(test.items...), opts...)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, test.expected, cal.Events[0])
+		})
+	}
+}
+
 func TestItems_paramValues(t *testing.T) {
 	tests := map[string]struct {
 		items  []lex.Item

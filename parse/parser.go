@@ -70,9 +70,16 @@ func Location(loc *time.Location) Option {
 	}
 }
 
+// InclusiveEnds configures the parser to add 1 day to the "End" time field
+// of every event with a DTEND property value of type DATE.
+func InclusiveEnds(p *parser) {
+	p.inclusiveEnds = true
+}
+
 type parser struct {
-	ctx context.Context
-	loc *time.Location
+	ctx           context.Context
+	loc           *time.Location
+	inclusiveEnds bool
 
 	items     <-chan lex.Item
 	buf       [2]lex.Item
@@ -272,7 +279,7 @@ loop:
 			}
 			evt.Start = t
 		case "DTEND":
-			t, err := p.parseTime(prop)
+			t, err := p.parseDTEND(prop)
 			if err != nil {
 				return evt, err
 			}
@@ -419,6 +426,15 @@ const (
 	layoutDateTimeUTC   = "20060102T150405Z"
 	layoutDateTimeLocal = "20060102T150405"
 )
+
+func (p *parser) parseDTEND(prop Property) (time.Time, error) {
+	t, err := p.parseTime(prop)
+	if err != nil || !p.inclusiveEnds {
+		return t, err
+	}
+
+	return t.AddDate(0, 0, 1), nil
+}
 
 func (p *parser) parseTime(prop Property) (time.Time, error) {
 	prop.Value = normalizeDateTimeValue(prop.Value)
